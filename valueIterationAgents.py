@@ -40,7 +40,26 @@ class ValueIterationAgent(ValueEstimationAgent):
         self.values = util.Counter() # A Counter is a dict with default 0
 
         # Write value iteration code here
-        "*** YOUR CODE HERE ***"
+        cur_buffer = util.Counter()
+        next_buffer = util.Counter()
+       
+        def getNextVal(state):
+            try:
+                return max(map(lambda action:
+                        sum(map(lambda nStateAndProb:
+                                nStateAndProb[1] * # T(s, a, s')
+                                (mdp.getReward(state, action, nStateAndProb[0]) + discount * cur_buffer[nStateAndProb[0]]), # R(s, a, s') + gamma * V^(k-1)(s')
+                            mdp.getTransitionStatesAndProbs(state, action))),
+                        mdp.getPossibleActions(state)))
+            except ValueError: # terminal state
+                return 0
+
+        for i in range(iterations):
+            for state in mdp.getStates():
+                next_buffer[state] = getNextVal(state)
+            cur_buffer, next_buffer = next_buffer, cur_buffer
+
+        self.values = cur_buffer
 
 
     def getValue(self, state):
@@ -55,8 +74,10 @@ class ValueIterationAgent(ValueEstimationAgent):
           Compute the Q-value of action in state from the
           value function stored in self.values.
         """
-        "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        return sum(map(lambda nStateAndProb:
+            nStateAndProb[1] *
+            (self.mdp.getReward(state, action, nStateAndProb[0]) + self.discount * self.values[nStateAndProb[0]]),
+            self.mdp.getTransitionStatesAndProbs(state, action)))
 
     def computeActionFromValues(self, state):
         """
@@ -67,8 +88,10 @@ class ValueIterationAgent(ValueEstimationAgent):
           there are no legal actions, which is the case at the
           terminal state, you should return None.
         """
-        "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        try:
+            return max(self.mdp.getPossibleActions(state), key=lambda action: self.computeQValueFromValues(state, action))
+        except ValueError: # terminal state
+            return None
 
     def getPolicy(self, state):
         return self.computeActionFromValues(state)
